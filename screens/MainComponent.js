@@ -1,4 +1,4 @@
-import { Image, Text, Platform, StyleSheet, View } from 'react-native';
+import { Image, Text, Platform, StyleSheet, View, Alert, ToastAndroid } from 'react-native';
 import Constants from 'expo-constants';
 import CampsiteInfoScreen from './CampsiteInfoScreen';
 import DirectoryScreen from './DirectoryScreen';
@@ -19,6 +19,7 @@ import { fetchComments } from '../features/comments/commentsSlice';
 import FavoritesScreen from './FavoritesScreen';
 import LoginScreen from './LoginScreen';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/core';
+import NetInfo from '@react-native-community/netinfo';
 
 const Drawer = createDrawerNavigator();
 
@@ -240,6 +241,33 @@ const Main = () => {
         dispatch(fetchPartners());
         dispatch(fetchComments());
     }, [dispatch]);
+
+    useEffect(() => {
+        NetInfo.fetch().then(connectionInfo => Platform.OS = 'ios' ? Alert.alert('Initial Network Connectivity Type:', connectionInfo.type) : ToastAndroid.show('Initial Network Connectivity Type:' + connectionInfo.type, ToastAndroid.LONG));
+        const unsubscribeNetInfo = NetInfo.addEventListener(connectionInfo => {
+            handleConnectivityChange(connectionInfo);
+        });
+        return unsubscribeNetInfo;
+    }, []);
+
+    const handleConnectivityChange = connectionInfo => {
+        let connectionMessage = 'You are now connected to an active network.';
+        switch(connectionInfo.type) {
+            case 'none':
+                connectionMessage = 'No networl connection is active.';
+                break;
+            case 'unknown':
+                connectionMessage = 'The network connection state is unknown';
+                break;
+            case 'cellular':
+                connectionMessage = 'You are now connected to a cellular network';
+                break;
+            case 'wifi':
+                connectionMessage = 'You are now connected to a wifi network';
+                break;
+        }
+        Platform.OS = 'ios' ? Alert.alert('Connection change:', connectionMessage) : ToastAndroid.show(connectionMessage, ToastAndroid.LONG);
+    };
 
     return (
         <View style={{ flex:1, paddingTop: Platform.OS === 'ios' ? 0 : Constants.statusBarHeight }}>
